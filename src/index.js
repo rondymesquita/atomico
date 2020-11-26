@@ -1,18 +1,16 @@
 const render = function (state) {
-    // console.log('>>>', new Date(), );
-    // const value = document.getElementById('value')
-    // const doubleValue = document.getElementById('doubleValue')
 
-    // value.innerHTML = state.value
-    // doubleValue.innerHTML = state.doubleValue
+    const filterIgnoreReservedWords = function([key, value]){
+        return !['computed', 'events', 'handlers'].includes(key)
+    }
+
+    const mapReturnOnlyPropertyKeys = function(arrayProperty){
+        return arrayProperty[0]
+    }
 
     const data = Object.entries(state)
-    .filter(function([key, value]){
-        return !['computed', 'events', 'handlers'].includes(key)
-    })
-    .map(function(arrayProperty){
-        return arrayProperty[0]
-    })
+    .filter(filterIgnoreReservedWords)
+    .map(mapReturnOnlyPropertyKeys)
 
     const renderInputs = function (property) {
         const elementValue = document.querySelector(`[rd-value=${property}]`)
@@ -29,7 +27,6 @@ const render = function (state) {
     }
 
     data.forEach(property => {
-        console.log('>>prop', property, state[property]);
         renderInputs(property)
         renderText(property)
     });
@@ -58,7 +55,6 @@ const setupHandlers = function (state) {
 const setupEvents = function (state) {
     const setupEvent = function (event) {
         const target = document.querySelector(event[1][1])
-        // console.log('e', event[1], state.handlers[event[1][2]])
         target.addEventListener(event[1][0], state.handlers[event[1][2]])
     }
     Object.entries(state.events).forEach(function (event) {
@@ -102,6 +98,11 @@ window.onload = function(){
                 'click',
                 '#decrement',
                 'decrement'
+            ],
+            onInputName: [
+                'input',
+                '*[rd-value=name]',
+                'onInputNameChange'
             ]
         },
         handlers: {
@@ -110,6 +111,9 @@ window.onload = function(){
             },
             decrement: function () {
                 this.value -= 1
+            },
+            onInputNameChange: function (event) {
+                this.name = event.target.value
             }
         }
     }
