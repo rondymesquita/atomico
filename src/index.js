@@ -13,9 +13,12 @@ const render = function (state) {
     .map(mapReturnOnlyPropertyKeys)
 
     const renderInputs = function (property) {
-        const elementValue = document.querySelector(`[rd-value=${property}]`)
-        if (elementValue) {
-            elementValue.value = state[property]
+        const elements = document.querySelectorAll(`[rd-value=${property}]`)
+        console.log('elements', elements);
+        if (elements.length) {
+            elements.forEach(element => {
+                element.value = state[property]
+            });
         }
     }
 
@@ -54,8 +57,10 @@ const setupHandlers = function (state) {
 
 const setupEvents = function (state) {
     const setupEvent = function (event) {
-        const target = document.querySelector(event[1][1])
-        target.addEventListener(event[1][0], state.handlers[event[1][2]])
+        const targets = document.querySelectorAll(event[1][1])
+        targets.forEach(target => {
+            target.addEventListener(event[1][0], state.handlers[event[1][2]])
+        });
     }
     Object.entries(state.events).forEach(function (event) {
         setupEvent(event)
