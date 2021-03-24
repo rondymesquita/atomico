@@ -7,16 +7,23 @@
     <link href="style.css" rel="stylesheet" type="text/css" />
   </head>
   <body>
-        <h1>Test</h1>
-        <p>Value: <span id="value"></span></p>
-        Name: <p rd-text="value"></p>
-        <p>Double Value: <span id="doubleValue"></span></p>
+        <h1 id="title">Test</h1>
+        <p>Counter: <span id="counter"></span></p>
+        <p>Double Counter: <span id="doubleCounter"></span></p>
         <button id='increment'>Increment</button>
         <button id='decrement'>Decrement</button>
 
         </br>
-        <input rd-value="name" />
-        Name: <p rd-text="name"></p>
+        <input id="name-input" />
+        Name: <span id="name-output"></span>
+
+        </br>
+        <input id="surname-input" />
+        Surname: <span id="surname-output"></span>
+
+        <br>
+        <div id="changeButtonColor">change color</div>
+        <div id="sendButton">Send</div>
 
     <script src="script.js"></script>
   </body>

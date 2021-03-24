@@ -1,75 +1,87 @@
-const render = function (state) {
-   
-    const value = document.getElementById('value')
-    const doubleValue = document.getElementById('doubleValue')
+const log = console.log
 
-    // const value = document.querySelector('*[rd-name]')
-
-    value.innerHTML = state.value
-    doubleValue.innerHTML = state.doubleValue
-}
-
-const setupComputed = function (obj) {
-    // console.log('setupCompute', obj.computed)
-    if (!obj.computed) {
+const setupComputed = function (model, data) {
+    if (!model.computed) {
         return
     }
 
-    Object.entries(obj.computed).forEach(function (computed) {
-        // console.log('>>>', computed)
-        const name = computed[0]
-        const fn = computed[1]
-        obj[name] = fn.call(obj)
-        // console.log('>>>', name, computed[1]())
+    Object.entries(model.computed).forEach(function ([name, fn]) {
+        data[name] = fn.call(data)
     })
-
-    // console.log('obj', obj)
-    return obj
 }
 
-const setupHandlers = function (state) {
-    Object.entries(state.handlers).forEach(function (handler) {
+const setupHandlers = function (model, data) {
+    Object.entries(model.handlers).forEach(function (handler) {
         // console.log('h', handler)
-        state.handlers[handler[0]] = handler[1].bind(state)
+        model.handlers[handler[0]] = handler[1].bind(data)
     })
 }
 
-const setupEvents = function (state) {
+const setupEvents = function (model, data) {
     const setupEvent = function (event) {
         const target = document.querySelector(event[1][1])
-        console.log('e', event[1], state.handlers[event[1][2]])
-        target.addEventListener(event[1][0], state.handlers[event[1][2]])
+        // console.log('e', event[1], model.handlers[event[1][2]])
+        target.addEventListener(event[1][0], model.handlers[event[1][2]])
     }
-    Object.entries(state.events).forEach(function (event) {
+    Object.entries(model.events).forEach(function (event) {
         setupEvent(event)
     })
 }
 
-const Redom = function (model) {
+const setupDom = function(model) {
+    // console.log('setupdom', model.dom)
+    Object.entries(model.dom).forEach(function ([name, selector]) {
+      console.log(name, selector)
+        model.dom[name] = document.querySelector(selector)
+    })
+}
 
-    var state = new Proxy(model, {
-        set: function (obj, prop, value) {
-            console.log('set', prop, value)
-            obj[prop] = value
-            setupComputed(obj)
-            render(obj)
+const Redom = function (model) {
+  
+
+    var data = new Proxy(model.data, {
+        set: function (_data, prop, value) {
+            // console.log('set', prop, value, _data)
+            _data[prop] = value
+            setupComputed(model, _data)
+            model.update()
+            return true
         }
     });
 
-    setupComputed(state)
-    setupHandlers(state)
-    setupEvents(state)
-    render(state)
+  // log('2')
+    setupComputed(model, data)
+    setupHandlers(model, data)
+    setupEvents(model, data)
+    setupDom(model)
+
+    model.update = model.update.bind(model)
+    model.update()
 };
+
+let updateCount = 0
 
 window.onload = function(){
     
     const model = {
-        value: 2,
-        name: "Rondy",
+        data: {
+            counter: 3,
+            name: "Rondy",
+            title: "New Title",
+            color: "red"
+        },
+        dom: {
+          title: "#title",
+          counter: "#counter",
+          doubleCounter: "#doubleCounter",
+          name: "#name-output",
+          nameInput: "#name-input",
+          surnameInput: "#surname-input",
+          sendButton: "#sendButton",
+        },
         computed: {
-            doubleValue () {
-                return this.value * 2
+            doubleCounter () {
+                return this.counter * 2
             }
         },
         events: {
@@ -82,17 +94,54 @@ window.onload = function(){
                 'click',
                 '#decrement',
                 'decrement'
+            ],
+            onInputName: [
+              'input',
+              '#name-input',
+              'onInputName'
+            ],
+            changeButtonColor: [
+              "click",
+              "#changeButtonColor",
+              'onChangeButtonColor'
             ]
         },
         handlers: {
             increment: function () {
-                this.value += 1
+                this.counter += 1
             },
             decrement: function () {
-                this.value -= 1
+                this.counter -= 1
+            },
+            onInputName: function(event){
+              this.name = event.target.value
+            },
+            onChangeButtonColor: function(){
+              this.color = this.color === "red" ? "blue" : "red"
             }
+        },
+        update: function(){
+          console.log('update count', updateCount++)
+          
+          this.dom.title.innerHTML = this.data.title + " : " + this.data.counter
+          this.dom.counter.innerHTML = this.data.counter
+          this.dom.doubleCounter.innerHTML = this.data.doubleCounter
+          this.dom.name.innerHTML = this.data.name
+          this.dom.nameInput.value = this.data.name
+
+          this.dom.surnameInput.value = this.data.name
+          // log(typeof this.dom.sendButton, Object.keys(this.dom.sendButton))
+          // document.querySelector("#sendButton").style.background = this.data.color
+          // this.dom.sendButton.style.border = "1px solid red"
+          // this.dom.sendButton.style.background = this.data.color
+
         }
     }
     const redom = new Redom(model)
-    console.log(redom)
+    // console.log(redom)
 }
+
+
+new MutationObserver((ms) => {
+  console.log(">>>mutations", ms.length)
+}).observe(document.body, {childList: true, subtree: true, attributes: true, characterData: true})
