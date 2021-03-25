@@ -63,7 +63,6 @@ const Redom = function (model) {
   const instance = new Proxy(model.data, {
       set: function (_instance, prop, value) {
           _instance[prop] = value
-          // console.log('set', prop, value, _instance)
 
           const run = !ignoredProps.includes(prop) && _instance.dom && Object.keys(_instance.dom).length != 0 && _instance.update
           if(run) {
@@ -160,35 +159,32 @@ window.onload = function(){
             },
             onChangeButtonColor: function(){
               this.color = this.color === "red" ? "blue" : "red"
+            },
+            updateName: function(){
+              this.dom.name.innerHTML = this.name
+              this.dom.nameInput.value = this.name
             }
         },
-        update: function(){       
+        update: function(){
           this.dom.title.innerHTML = this.title + " : " + this.counter
           this.dom.counter.innerHTML = this.counter
           this.dom.doubleCounter.innerHTML = this.doubleCounter
 
-          this.dom.name.innerHTML = this.name
-          this.dom.nameInput.value = this.name
+          this.handlers.updateName()
 
           this.dom.surname.innerHTML = this.surname
           this.dom.surnameInput.value = this.surname
 
           this.dom.fullnameOutput.innerHTML = this.fullname
-          // this.dom.nameInput.value = this.name
 
-          // this.dom.surnameInput.value = this.data.name
-          // // log(typeof this.dom.sendButton, Object.keys(this.dom.sendButton))
-          // // document.querySelector("#sendButton").style.background = this.data.color
-          // // this.dom.sendButton.style.border = "1px solid red"
-          // this.dom.sendButton.style.background = this.data.color
+          this.dom.sendButton.style.background = this.color
 
         }
     }
     const redom = new Redom(model)
-    // console.log(redom)
 }
 
 
 new MutationObserver((ms) => {
-  console.log(">>>mutations", ms.length)
+  // console.log(">>>mutations", ms.length)
 }).observe(document.body, {childList: true, subtree: true, attributes: true, characterData: true})
