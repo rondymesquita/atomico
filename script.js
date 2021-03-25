@@ -1,62 +1,90 @@
+"use strict"
 const log = console.log
 
-const setupComputed = function (model, data) {
+const validate = function (model, instance) {
     if (!model.computed) {
         return
     }
 
-    Object.entries(model.computed).forEach(function ([name, fn]) {
-        data[name] = fn.call(data)
-    })
-}
-
-const setupHandlers = function (model, data) {
-    Object.entries(model.handlers).forEach(function (handler) {
-        // console.log('h', handler)
-        model.handlers[handler[0]] = handler[1].bind(data)
-    })
-}
-
-const setupEvents = function (model, data) {
-    const setupEvent = function (event) {
-        const target = document.querySelector(event[1][1])
-        // console.log('e', event[1], model.handlers[event[1][2]])
-        target.addEventListener(event[1][0], model.handlers[event[1][2]])
+    if (!instance) {
+      throw new Error("No instance informed")
     }
-    Object.entries(model.events).forEach(function (event) {
-        setupEvent(event)
-    })
 }
 
-const setupDom = function(model) {
-    // console.log('setupdom', model.dom)
-    Object.entries(model.dom).forEach(function ([name, selector]) {
-      console.log(name, selector)
-        model.dom[name] = document.querySelector(selector)
-    })
+const setupComputed = function (model, instance) {
+  validate(model, instance)
+
+  Object.entries(model.computed).forEach(function ([name, fn]) {
+      instance[name] = fn.call(instance)
+  })
+  log('Computed mounted')
+}
+
+const setupHandlers = function (model, instance) {
+  validate(model, instance)
+  Object.entries(model.handlers).forEach(function (handler) {
+      // console.log('h', handler)
+      const name = handler[0]
+      const fn = handler[1]
+      instance.handlers[name] = fn.bind(instance)
+  })
+  log('Handlers mounted')
+}
+
+const setupEvents = function (model, instance) {
+  validate(model, instance)
+  const setupEvent = function (event) {
+      const eventName = event[1][0]
+      const selector = event[1][1]
+      const handlerName = event[1][2]
+      const target = document.querySelector(selector)
+      // console.log('e', event[1], model.handlers[event[1][2]])
+      target.addEventListener(eventName, instance.handlers[handlerName])
+  }
+  Object.entries(model.events).forEach(function (event) {
+      setupEvent(event)
+  })
+  log('Events mounted')
+}
+
+const setupDom = function(model, instance) {
+  validate(model, instance)
+  Object.entries(model.selectors).forEach(function ([name, selector]) {
+    // console.log(name, selector)
+    instance.dom[name] = document.querySelector(selector)
+  })
+  log('Dom mounted')
+    // console.log('setupdom', instance)
 }
 
 const Redom = function (model) {
+
+  const ignoredProps = ['handlers', "dom"]
+  const instance = new Proxy(model.data, {
+      set: function (_instance, prop, value) {
+          _instance[prop] = value
+          // console.log('set', prop, value, _instance)
+
+          const run = !ignoredProps.includes(prop) && _instance.dom && Object.keys(_instance.dom).length != 0 && _instance.update
+          if(run) {
+            setupComputed(model, _instance)
+            _instance.update()
+          }
+
+          return true
+      }
+  });
   
+  instance.update = model.update.bind(instance)
+  instance.handlers = {}
+  instance.dom = {}
 
-    var data = new Proxy(model.data, {
-        set: function (_data, prop, value) {
-            // console.log('set', prop, value, _data)
-            _data[prop] = value
-            setupComputed(model, _data)
-            model.update()
-            return true
-        }
-    });
+  setupComputed(model, instance)
+  setupHandlers(model, instance)
+  setupEvents(model, instance)
+  setupDom(model, instance)
 
-  // log('2')
-    setupComputed(model, data)
-    setupHandlers(model, data)
-    setupEvents(model, data)
-    setupDom(model)
-
-    model.update = model.update.bind(model)
-    model.update()
+  instance.update()
 };
 
 let updateCount = 0
@@ -67,21 +95,27 @@ window.onload = function(){
         data: {
             counter: 3,
             name: "Rondy",
+            surname: "Mesquita",
             title: "New Title",
             color: "red"
         },
-        dom: {
+        selectors: {
           title: "#title",
           counter: "#counter",
           doubleCounter: "#doubleCounter",
           name: "#name-output",
           nameInput: "#name-input",
           surnameInput: "#surname-input",
+          surname: "#surname-output",
           sendButton: "#sendButton",
+          fullnameOutput: "#fullname-output"
         },
         computed: {
             doubleCounter () {
                 return this.counter * 2
+            },
+            fullname(){
+              return `${this.name} ${this.surname}`
             }
         },
         events: {
@@ -100,6 +134,11 @@ window.onload = function(){
               '#name-input',
               'onInputName'
             ],
+            onInputSurname: [
+              'input',
+              '#surname-input',
+              'onInputSurnameInput'
+            ],
             changeButtonColor: [
               "click",
               "#changeButtonColor",
@@ -116,23 +155,31 @@ window.onload = function(){
             onInputName: function(event){
               this.name = event.target.value
             },
+            onInputSurnameInput: function(event){
+              this.surname = event.target.value
+            },
             onChangeButtonColor: function(){
               this.color = this.color === "red" ? "blue" : "red"
             }
         },
-        update: function(){
-          console.log('update count', updateCount++)
-          
-          this.dom.title.innerHTML = this.data.title + " : " + this.data.counter
-          this.dom.counter.innerHTML = this.data.counter
-          this.dom.doubleCounter.innerHTML = this.data.doubleCounter
-          this.dom.name.innerHTML = this.data.name
-          this.dom.nameInput.value = this.data.name
+        update: function(){       
+          this.dom.title.innerHTML = this.title + " : " + this.counter
+          this.dom.counter.innerHTML = this.counter
+          this.dom.doubleCounter.innerHTML = this.doubleCounter
 
-          this.dom.surnameInput.value = this.data.name
-          // log(typeof this.dom.sendButton, Object.keys(this.dom.sendButton))
-          // document.querySelector("#sendButton").style.background = this.data.color
-          // this.dom.sendButton.style.border = "1px solid red"
+          this.dom.name.innerHTML = this.name
+          this.dom.nameInput.value = this.name
+
+          this.dom.surname.innerHTML = this.surname
+          this.dom.surnameInput.value = this.surname
+
+          this.dom.fullnameOutput.innerHTML = this.fullname
+          // this.dom.nameInput.value = this.name
+
+          // this.dom.surnameInput.value = this.data.name
+          // // log(typeof this.dom.sendButton, Object.keys(this.dom.sendButton))
+          // // document.querySelector("#sendButton").style.background = this.data.color
+          // // this.dom.sendButton.style.border = "1px solid red"
           // this.dom.sendButton.style.background = this.data.color
 
         }
