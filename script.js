@@ -75,14 +75,17 @@ const Redom = function (model) {
   });
   
   instance.update = model.update.bind(instance)
+  instance.mounted = model.mounted.bind(instance)
   instance.handlers = {}
   instance.dom = {}
+  instance.mount = {}
 
   setupComputed(model, instance)
   setupHandlers(model, instance)
   setupEvents(model, instance)
   setupDom(model, instance)
 
+  instance.mounted()
   instance.update()
 };
 
@@ -164,6 +167,11 @@ window.onload = function(){
               this.dom.name.innerHTML = this.name
               this.dom.nameInput.value = this.name
             }
+        },
+        mounted: function() {
+          setInterval(() => {
+            this.dom.title.innerHTML = new Date()
+          }, 1000)
         },
         update: function(){
           this.dom.title.innerHTML = this.title + " : " + this.counter
