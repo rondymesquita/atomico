@@ -49,6 +49,7 @@ const setupEvents = function (model, instance) {
 
 const setupDom = function(model, instance) {
   validate(model, instance)
+
   Object.entries(model.selectors).forEach(function ([name, selector]) {
     // console.log(name, selector)
     instance.dom[name] = document.querySelector(selector)
@@ -64,17 +65,18 @@ const Redom = function (model) {
       set: function (_instance, prop, value) {
           _instance[prop] = value
 
-          const run = !ignoredProps.includes(prop) && _instance.dom && Object.keys(_instance.dom).length != 0 && _instance.update
+          const run = !ignoredProps.includes(prop) && _instance.dom && Object.keys(_instance.dom).length != 0 && _instance.render
           if(run) {
             setupComputed(model, _instance)
-            _instance.update()
+            _instance.render()
           }
 
           return true
       }
   });
+
   
-  instance.update = model.update.bind(instance)
+  instance.render = model.render.bind(instance)
   instance.mounted = model.mounted.bind(instance)
   instance.handlers = {}
   instance.dom = {}
@@ -86,7 +88,7 @@ const Redom = function (model) {
   setupDom(model, instance)
 
   instance.mounted()
-  instance.update()
+  instance.render()
 };
 
 let updateCount = 0
@@ -94,6 +96,7 @@ let updateCount = 0
 window.onload = function(){
     
     const model = {
+        root: "#app", 
         data: {
             counter: 3,
             name: "Rondy",
@@ -169,11 +172,11 @@ window.onload = function(){
             }
         },
         mounted: function() {
-          setInterval(() => {
-            this.dom.title.innerHTML = new Date()
-          }, 1000)
+          // setInterval(() => {
+            this.dom.title.innerHTML = new Date().getTime()
+          // }, 1000)
         },
-        update: function(){
+        render: function(){
           this.dom.title.innerHTML = this.title + " : " + this.counter
           this.dom.counter.innerHTML = this.counter
           this.dom.doubleCounter.innerHTML = this.doubleCounter
